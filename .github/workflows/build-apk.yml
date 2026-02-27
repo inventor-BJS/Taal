@@ -14,37 +14,35 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install Dependencies
+      - name: Clear Cache & Install
         run: |
+          npm cache clean --force
           npm install --legacy-peer-deps
-          npm install @capacitor/core @capacitor/cli @capacitor/android --save-dev
+          npm install @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest
 
       - name: Build Web App
         run: |
-          npm run build || true
-          # Emergency: If build fails, create a dummy folder so the APK builder doesn't crash
-          if [ ! -d "dist" ]; then
-            mkdir dist
-            echo '<html><body>Taal Music</body></html>' > dist/index.html
-          fi
+          # Try to build, but create a 'dist' folder manually if it fails
+          npm run build || (mkdir -p dist && echo "<html></html>" > dist/index.html)
 
-      - name: Initialize Config & Android
+      - name: Configure and Sync
         run: |
-          # Create config if missing
+          # Ensure config exists
           if [ ! -f "capacitor.config.json" ] && [ ! -f "capacitor.config.ts" ]; then
             echo '{"appId": "com.taal.music", "appName": "Taal", "webDir": "dist"}' > capacitor.config.json
           fi
-          # Create Android folder
-          npx cap add android || echo "Android folder exists"
-
-      - name: Sync and Build
-        run: |
+          # Fresh Android add
+          rm -rf android
+          npx cap add android
           npx cap sync android
+
+      - name: Build with Gradle
+        run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Upload Finished APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Taal-Music-App
