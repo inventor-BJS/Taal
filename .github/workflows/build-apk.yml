@@ -15,15 +15,25 @@ jobs:
           node-version: 20
 
       - name: Install Dependencies
-        run: npm install
+        run: |
+          npm install
+          npm install @capacitor/core @capacitor/cli @capacitor/android
 
       - name: Build Web App
         run: npm run build
 
-      - name: Initialize Android Folder
-        # This creates the android folder if it doesn't exist in your repo
+      - name: Initialize Capacitor Config
+        # This creates a basic config file if it's missing to avoid exit code 254
         run: |
-          npx cap add android || echo "Android folder already exists, skipping add..."
+          if [ ! -f "capacitor.config.ts" ] && [ ! -f "capacitor.config.json" ]; then
+            echo '{"appId": "com.taal.music", "appName": "Taal", "webDir": "dist"}' > capacitor.config.json
+          fi
+
+      - name: Initialize Android Folder
+        run: |
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
 
       - name: Sync Capacitor
         run: npx cap sync android
